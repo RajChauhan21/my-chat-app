@@ -36,3 +36,45 @@
     transform: rotate(360deg);
   }
 }
+
+/* src/App.css */
+.landing-page {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.hero-section {
+  padding-top: 80px;
+}
+
+.navbar-brand {
+  font-weight: 700;
+}
+
+.feature-card {
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-10px);
+}
+
+.step-number {
+  font-weight: 700;
+}
+
+.mockup-chat {
+  border: 1px solid #e9ecef;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #ffc107, #ffb300);
+  border: none;
+  font-weight: 600;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #ffb300, #ffa000);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(255, 193, 7, 0.3);
+}

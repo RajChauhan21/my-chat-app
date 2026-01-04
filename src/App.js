@@ -1,24 +1,58 @@
-import logo from './logo.svg';
-import './App.css';
+import logo from "./logo.svg";
+import "./App.css";
+import ChatApp from "./Chat";
+import React, { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+  Navigate,
+} from "react-router-dom";
+import LoginPage from "./LoginPage";
+import LandingPage from "./LandingPage";
+import BeautifulChatComponent from "./ChatNewPage";
+import ChatAppDeep from "./ChatApp";
+import ChatGemini from "./ChatGemini";
+
+function AppWrapper() {
+  return React.createElement(Router, null, React.createElement(App));
+}
 
 function App() {
+  const [user, setUser] = useState(null);
+  // const navigate = useNavigate();
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+
+          <Route path="/chat" element={<ChatAppDeep />} />
+
+          <Route path="/newChat" element={<BeautifulChatComponent />} />
+
+
+          <Route path="/chatgem" element={<ChatGemini />} />
+
+          {/* <Route
+            path="/login"
+            element={
+              user ? (
+                <ChatApp user={user} />
+              ) : (
+                <LoginPage onLogin={handleLogin} />
+              )
+            }
+          /> */}
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
