@@ -1367,28 +1367,8 @@ const ChatApp = () => {
     startCountdownWithCleanup(streamKey, ttlSeconds);
   };
 
-  // Add this debug effect
-  useEffect(() => {
-    console.log("=== DEBUG EXPIRY CHATS ===");
-    console.log("Current expiringChats state:", expiringChats);
-    console.log("Number of expiring chats:", Object.keys(expiringChats).length);
 
-    // Check each streamKey format
-    Object.keys(expiringChats).forEach((key) => {
-      console.log(`StreamKey: "${key}"`, "Seconds:", expiringChats[key]);
-      console.log(`Is private chat? ${key.includes("private-chat")}`);
-      console.log(
-        `Contains currentUser "${currentUser}"? ${key.includes(currentUser)}`
-      );
-    });
-
-    // Check friends list
-    console.log(
-      "Friends list:",
-      friends.map((f) => f.username)
-    );
-  }, [expiringChats, friends]);
-
+  
   const startCountdownWithCleanup = (streamKey, initialSeconds) => {
     let secondsRemaining = initialSeconds;
 
