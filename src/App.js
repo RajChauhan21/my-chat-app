@@ -35,11 +35,6 @@ function App() {
 
           <Route path="/chat" element={<ChatAppDeep />} />
 
-          <Route path="/newChat" element={<BeautifulChatComponent />} />
-
-
-          <Route path="/chatgem" element={<ChatGemini />} />
-
           {/* <Route
             path="/login"
             element={

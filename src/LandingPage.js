@@ -1,16 +1,22 @@
 // src/components/LandingPage.js
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React from "react";
+import { Link } from "react-router-dom";
 
 const LandingPage = () => {
   return (
     <div className="landing-page">
       {/* Navigation */}
-      <nav className="navbar navbar-expand-lg navbar-dark fixed-top" style={{ backgroundColor: 'rgba(102, 126, 234, 0.95)' }}>
+      <nav
+        className="navbar navbar-expand-lg navbar-dark fixed-top"
+        style={{ backgroundColor: "rgba(116, 180, 226, 1)" }}
+      >
         <div className="container">
-          <Link className="navbar-brand fw-bold d-flex align-items-center" to="/">
-            <span className="fs-3 me-2">💬</span>
-            ChatWave
+          <Link
+            className="navbar-brand fw-bold d-flex align-items-center"
+            to="/"
+          >
+            <i className="bi bi-chat-left-heart-fill fs-3 me-2 text-warning"></i>
+            Talk-Took
           </Link>
           {/* <div className="navbar-nav ms-auto">
             <Link className="nav-link btn btn-outline-light btn-sm me-2" to="/login">
@@ -24,14 +30,17 @@ const LandingPage = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="hero-section" style={{ 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <section
+        className="hero-section"
+        style={{
+          background: "linear-gradient(135deg, #60a1f6ff 0%, #f8b8b8ff 100%)",
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
         {/* Animated Background */}
         {/* <div className="position-absolute w-100 h-100">
           <div className="position-absolute rounded-circle bg-white opacity-10" 
@@ -50,14 +59,20 @@ const LandingPage = () => {
                   Connect with <span className="text-warning">Everyone</span>
                 </h1>
                 <p className="lead mb-4 fs-5">
-                  Experience seamless real-time messaging with ChatWave. 
-                  Fast, secure, and beautifully designed for modern conversations.
+                  Experience seamless real-time messaging with Talk-Took. Fast,
+                  secure, and beautifully designed for modern conversations.
                 </p>
                 <div className="hero-buttons d-flex flex-wrap gap-3 mb-5">
-                  <Link to="/chat" className="btn btn-warning btn-lg px-4 py-3 fw-bold">
+                  <Link
+                    to="/chat"
+                    className="btn btn-warning btn-lg px-4 py-3 fw-bold"
+                  >
                     Start Chatting Now 🚀
                   </Link>
-                  <a href="#features" className="btn btn-outline-light btn-lg px-4 py-3">
+                  <a
+                    href="#features"
+                    className="btn btn-outline-light btn-lg px-4 py-3"
+                  >
                     Learn More
                   </a>
                 </div>
@@ -79,10 +94,16 @@ const LandingPage = () => {
             </div>
             <div className="col-lg-6">
               <div className="hero-image text-center">
-                <div className="mockup-chat bg-white rounded-4 shadow-lg p-4 mx-auto" style={{ maxWidth: '400px' }}>
+                <div
+                  className="mockup-chat bg-white rounded-4 shadow-lg p-4 mx-auto"
+                  style={{ maxWidth: "400px" }}
+                >
                   <div className="chat-header bg-primary text-white rounded-3 p-3 mb-3">
                     <div className="d-flex align-items-center">
-                      <div className="avatar bg-warning rounded-circle me-3" style={{ width: '40px', height: '40px' }}></div>
+                      <div
+                        className="avatar bg-warning rounded-circle me-3"
+                        style={{ width: "40px", height: "40px" }}
+                      ></div>
                       <div>
                         <h6 className="mb-0">Group Chat</h6>
                         <small>3 online</small>
@@ -97,7 +118,7 @@ const LandingPage = () => {
                       <small className="text-muted">Alice, 2 min ago</small>
                     </div>
                     <div className="message sent mb-2 text-end">
-                      <div className="bg-primary text-white rounded-3 p-2 mb-1">
+                      <div className="bg-primary text-white rounded-3 p-2 mb-1 mx-1">
                         <small>Hello Alice! How's it going? 😊</small>
                       </div>
                       <small className="text-muted">You, 1 min ago</small>
@@ -120,43 +141,99 @@ const LandingPage = () => {
       <section id="features" className="py-5 bg-light">
         <div className="container py-5">
           <div className="text-center mb-5">
-            <h2 className="display-4 fw-bold mb-3">Why Choose ChatWave?</h2>
-            <p className="lead text-muted">Everything you need for modern communication</p>
+            <h2 className="display-4 fw-bold mb-3">Why Choose Talk-Took?</h2>
+            <p className="lead text-muted">
+              Everything you need for modern communication
+            </p>
           </div>
           <div className="row g-4">
             <div className="col-md-4">
               <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
-                <div className="feature-icon bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
-                     style={{ width: '80px', height: '80px' }}>
+                <div
+                  className="feature-icon bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
                   <span className="fs-2 text-white">⚡</span>
                 </div>
                 <h4 className="fw-bold mb-3">Lightning Fast</h4>
                 <p className="text-muted">
-                  Real-time messaging with WebSocket technology. No delays, just instant communication.
+                  Real-time messaging with WebSocket technology. No delays, just
+                  instant communication.
                 </p>
               </div>
             </div>
             <div className="col-md-4">
               <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
-                <div className="feature-icon bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
-                     style={{ width: '80px', height: '80px' }}>
+                <div
+                  className="feature-icon bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
                   <span className="fs-2 text-white">🔒</span>
                 </div>
                 <h4 className="fw-bold mb-3">Secure & Private</h4>
                 <p className="text-muted">
-                  End-to-end encryption and secure protocols to keep your conversations private.
+                  End-to-end encryption and secure protocols to keep your
+                  conversations private.
                 </p>
               </div>
             </div>
             <div className="col-md-4">
               <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
-                <div className="feature-icon bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
-                     style={{ width: '80px', height: '80px' }}>
+                <div
+                  className="feature-icon bg-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
                   <span className="fs-2 text-white">🎨</span>
                 </div>
                 <h4 className="fw-bold mb-3">Beautiful Design</h4>
                 <p className="text-muted">
-                  Clean, modern interface that works perfectly on all your devices.
+                  Clean, modern interface that works perfectly on all your
+                  devices.
+                </p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
+                <div
+                  className="feature-icon bg-info rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
+                  <span className="fs-2 text-white">🏯</span>
+                </div>
+                <h4 className="fw-bold mb-3">Hybrid Architecture</h4>
+                <p className="text-muted">
+                  Chats aren't saved, instead it will expire after a set time,
+                  ensuring privacy and security.
+                </p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
+                <div
+                  className="feature-icon bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
+                  <span className="fs-2 text-white">💝</span>
+                </div>
+                <h4 className="fw-bold mb-3">Only good feelings</h4>
+                <p className="text-muted">
+                  Harsh conversations is'nt the problem, storing does!!, we
+                  don't store any chat data.
+                </p>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <div className="feature-card text-center p-4 h-100 bg-white rounded-4 shadow-sm">
+                <div
+                  className="feature-icon bg-danger rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                  style={{ width: "80px", height: "80px" }}
+                >
+                  <span className="fs-2 text-white">📈</span>
+                </div>
+                <h4 className="fw-bold mb-3">Scalable System</h4>
+                <p className="text-muted">
+                  Can handle hundreads of concurrent users without breaking a
+                  sweat.
                 </p>
               </div>
             </div>
@@ -169,70 +246,130 @@ const LandingPage = () => {
         <div className="container py-5">
           <div className="text-center mb-5">
             <h2 className="display-4 fw-bold mb-3">How It Works</h2>
-            <p className="lead text-muted">Get started in just 3 simple steps</p>
+            <p className="lead text-muted">
+              Get started in just 3 simple steps
+            </p>
           </div>
           <div className="row g-4">
             <div className="col-md-4 text-center">
-              <div className="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
-                   style={{ width: '60px', height: '60px' }}>1</div>
+              <div
+                className="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
+                style={{ width: "60px", height: "60px" }}
+              >
+                1
+              </div>
               <h4 className="fw-bold mb-3">Sign Up</h4>
-              <p className="text-muted">Create your account in seconds with our quick login</p>
+              <p className="text-muted">
+                Create your account in seconds with our quick login
+              </p>
             </div>
             <div className="col-md-4 text-center">
-              <div className="step-number bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
-                   style={{ width: '60px', height: '60px' }}>2</div>
+              <div
+                className="step-number bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
+                style={{ width: "60px", height: "60px" }}
+              >
+                2
+              </div>
               <h4 className="fw-bold mb-3">Connect</h4>
-              <p className="text-muted">Find friends or join existing group conversations</p>
+              <p className="text-muted">
+                Find friends or join existing group conversations
+              </p>
             </div>
             <div className="col-md-4 text-center">
-              <div className="step-number bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
-                   style={{ width: '60px', height: '60px' }}>3</div>
+              <div
+                className="step-number bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 fw-bold fs-2"
+                style={{ width: "60px", height: "60px" }}
+              >
+                3
+              </div>
               <h4 className="fw-bold mb-3">Chat</h4>
-              <p className="text-muted">Start messaging in real-time with anyone, anywhere</p>
+              <p className="text-muted">
+                Start messaging in real-time with anyone, anywhere
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-5" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <section
+        className="py-5"
+        style={{
+          background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        }}
+      >
         <div className="container py-5">
           <div className="row justify-content-center text-center">
             <div className="col-lg-8">
-              <h2 className="display-5 fw-bold text-white mb-4">Ready to Start Chatting?</h2>
+              <h2 className="display-5 fw-bold text-white mb-4">
+                Ready to Start Chatting?
+              </h2>
               <p className="lead text-light mb-4">
-                Join thousands of users who are already enjoying seamless communication with ChatWave.
+                Join thousands of users who are already enjoying seamless
+                communication with Talk-Took.
               </p>
-              <Link to="/login" className="btn btn-warning btn-lg px-5 py-3 fw-bold fs-4">
+              <Link
+                to="/chat"
+                className="btn btn-warning btn-lg px-5 py-3 fw-bold fs-4"
+              >
                 Get Started Free 🚀
               </Link>
-              <p className="text-light mt-3 mb-0">No credit card required • Free forever</p>
+              <p className="text-light mt-3 mb-0">
+                No credit card required • Free forever
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-dark text-light py-4">
+      {/* <footer className="bg-dark text-light py-4">
         <div className="container">
           <div className="row align-items-center">
             <div className="col-md-6">
               <div className="d-flex align-items-center">
-                <span className="fs-4 me-2">💬</span>
-                <h5 className="mb-0 fw-bold">ChatWave</h5>
+                <i className="bi bi-chat-left-heart-fill fs-3 me-2"></i>{" "}
+                <h5 className="mb-0 fw-bold">Talk-Took</h5>
               </div>
-              <p className="mb-0 mt-2 text-muted small">
+              <p className="mb-0 mt-2 text-light small">
                 Connecting people through seamless real-time communication.
               </p>
             </div>
             <div className="col-md-6 text-md-end">
-              <p className="mb-0 text-muted small">
-                &copy; 2024 ChatWave. All rights reserved.
+              <p className="mb-0 text-light small">
+                &copy; 2024 Talk-Took. All rights reserved.
               </p>
             </div>
           </div>
         </div>
-      </footer>
+      </footer> */}
+      {/* Footer */}
+<footer className="bg-dark text-light py-4">
+  <div className="container">
+    <div className="row align-items-center">
+      <div className="col-md-6 text-md-start">
+        <div className="d-flex align-items-center mb-2">
+          <i className="bi bi-chat-left-heart-fill fs-3 me-2 text-warning"></i>
+          <h5 className="mb-0 fw-bold">Talk-Took</h5>
+        </div>
+        <p className="mb-0 small" style={{ opacity: 0.8 }}>
+          Connecting people through seamless real-time communication.
+        </p>
+      </div>
+      <div className="col-md-6 text-md-end">
+        <p className="mb-0 small" style={{ opacity: 0.6 }}>
+          &copy; 2024 Talk-Took. All rights reserved.
+        </p>
+        {/* Made with love by Jay */}
+        <div className="mt-2">
+          <p className="mb-0 small" style={{ opacity: 0.8 }}>
+            Made with <span className="text-danger">❤️</span> by Jay
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
 
       <style>
         {`
