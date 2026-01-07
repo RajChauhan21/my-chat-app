@@ -3039,7 +3039,8 @@ const ChatApp = () => {
                       })()}
                     </div>
 
-                    <span className="status text-dark text-start">
+                    <span className="status text-dark text-start"  onClick={isGroupMode ? showGroupMembers : undefined}>
+                     
                       {isGroupMode
                         ? `${
                             groups.find((g) => g.id === currentGroupId)
@@ -3048,7 +3049,7 @@ const ChatApp = () => {
                         : friendUsername
                         ? "Online"
                         : "Choose a friend to chat"}
-                        onClick={isGroupMode ? showGroupMembers : undefined}
+                        
                     </span>
                   </div>
                 </div>
