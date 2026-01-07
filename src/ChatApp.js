@@ -271,7 +271,7 @@ const ChatApp = () => {
 
     const newGroup = {
       id: groupId,
-      name: inputGroupName,
+      name: inputGroupName.toLowerCase().trim(),
       groupMembers: [currentUser], // Add current user automatically
       admin: currentUser,
       createdAt: new Date().toISOString(),
@@ -1031,7 +1031,7 @@ const ChatApp = () => {
     // Send join request to backend
     const joinRequest = {
       memberName: currentUser,
-      groupId: inputGroupName,
+      groupId:  inputGroupName.toLowerCase().trim(),
     };
 
     if (stompClientRef.current) {
@@ -3048,6 +3048,7 @@ const ChatApp = () => {
                         : friendUsername
                         ? "Online"
                         : "Choose a friend to chat"}
+                        onClick={isGroupMode ? showGroupMembers : undefined}
                     </span>
                   </div>
                 </div>
