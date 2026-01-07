@@ -252,6 +252,19 @@ const ChatApp = () => {
       return;
     }
 
+    // Validation 2: Only letters (no numbers or special characters)
+    const lettersOnlyRegex = /^[A-Za-z]+$/;
+    if (!lettersOnlyRegex.test(inputGroupName)) {
+      Swal.fire({
+        title: "Error!",
+        text: "group name can only contain letters (A-Z, a-z). No numbers or special characters allowed.",
+        icon: "error",
+        confirmButtonText: "Cool",
+      });
+      setInputGroupName("");
+      return;
+    }
+
     setIsCreatingGroup(true);
     setShowGroupLoader(true);
     const groupId = generateUniqueId();
@@ -983,8 +996,37 @@ const ChatApp = () => {
     if (!inputGroupName.trim()) {
       setShowGroupLoader(false);
       addNotification("Please enter a valid group name");
+       setShowGroupLoader(false);
       return;
     }
+
+     if (inputGroupName.length > 10) {
+      Swal.fire({
+        title: "Error!",
+        text: "Group name too long. Max 10 characters.",
+        icon: "error",
+        confirmButtonText: "Cool",
+      });
+      setInputGroupName("");
+       setShowGroupLoader(false);
+      return;
+    }
+
+    // Validation 2: Only letters (no numbers or special characters)
+    const lettersOnlyRegex = /^[A-Za-z]+$/;
+    if (!lettersOnlyRegex.test(inputGroupName)) {
+      Swal.fire({
+        title: "Error!",
+        text: "group name can only contain letters (A-Z, a-z). No numbers or special characters allowed.",
+        icon: "error",
+        confirmButtonText: "Cool",
+      });
+      setInputGroupName("");
+       setShowGroupLoader(false);
+      return;
+    }
+
+    
 
     // Send join request to backend
     const joinRequest = {
@@ -1226,7 +1268,9 @@ const ChatApp = () => {
       }
     }
 
-    const socket = new SockJS("http://localhost:8080/webSocket");
+    const socket = new SockJS(
+      "https://my-chat-app-server-ng0o.onrender.com/webSocket"
+    );
 
     const stompClient = new Client({
       webSocketFactory: () => socket,
@@ -1353,9 +1397,7 @@ const ChatApp = () => {
   const handleExpiryOfChats = (message) => {
     console.log("Chat expiry received:", message);
     const { streamKey, ttlSeconds, minutesRemaining } = message;
-    addNotification(
-      `Chat will expire in ${minutesRemaining} minute(s)`,
-    );
+    addNotification(`Chat will expire in ${minutesRemaining} minute(s)`);
 
     console.log("DEBUG: Received streamKey:", streamKey);
     console.log(
@@ -1367,8 +1409,6 @@ const ChatApp = () => {
     startCountdownWithCleanup(streamKey, ttlSeconds);
   };
 
-
-  
   const startCountdownWithCleanup = (streamKey, initialSeconds) => {
     let secondsRemaining = initialSeconds;
 
@@ -1583,7 +1623,9 @@ const ChatApp = () => {
       const cleanKey = streamKey.replace("private-chat", "");
       const [user1, user2] = cleanKey.split("-");
       chatName =
-        currentUser.toLowerCase() === user1.toLowerCase() ? `Chat with ${user2}` : `Chat with ${user1}`;
+        currentUser.toLowerCase() === user1.toLowerCase()
+          ? `Chat with ${user2}`
+          : `Chat with ${user1}`;
     }
 
     // Show toast notification
@@ -1978,6 +2020,85 @@ const ChatApp = () => {
     }
   };
 
+  // const addFriend = () => {
+  //   if (!isConnected || !stompClientRef.current || connectionError) {
+  //     addNotification(
+  //       "Can't perform action - No connection to server",
+  //       "error"
+  //     );
+  //     return;
+  //   }
+  //   setShowGroupLoader(true);
+  //   if (!newFriendUsername.trim()) return;
+
+  //   if (newFriendUsername.length > 10) {
+  //     Swal.fire({
+  //       title: "Error!",
+  //       text: "Username too long. Max 10 characters.",
+  //       icon: "error",
+  //       confirmButtonText: "Cool",
+  //     });
+  //     setShowGroupLoader(false);
+  //     setNewFriendUsername("");
+  //     return;
+  //   }
+  //   if (newFriendUsername.toLowerCase() === currentUser.toLowerCase()) {
+  //     Swal.fire({
+  //       title: "Error!",
+  //       text: "you can't add yourself.",
+  //       icon: "error",
+  //       confirmButtonText: "Cool",
+  //     });
+  //     setShowGroupLoader(false);
+  //     setNewFriendUsername("");
+  //     return;
+  //   }
+
+  //   // Check for duplicates (case insensitive)
+  //   const friendExists = friends.some(
+  //     (friend) =>
+  //       friend.username.toLowerCase() === newFriendUsername.toLowerCase()
+  //   );
+
+  //   if (friendExists) {
+  //     console.log("friend exists");
+  //     addNotification("Friend already exists!");
+  //     setNewFriendUsername("");
+  //     setShowGroupLoader(false);
+  //     return;
+  //   }
+
+  //   const newFriend = {
+  //     id: Date.now().toString(),
+  //     username: newFriendUsername,
+  //     friendName: newFriendUsername,
+  //     selfName: currentUser,
+  //     online: true,
+  //     type: "add",
+  //     unread: 0,
+  //   };
+
+  //   stompClientRef.current.publish({
+  //     destination: "/app/friend/add",
+  //     body: JSON.stringify(newFriend),
+  //   });
+
+  //   // setFriends((prev) => [...prev, newFriend]);
+  //   console.log("Added friend:", newFriend);
+
+  //   // setFriends((prev) => {
+  //   //   const updatedFriends = [...prev, newFriend];
+  //   //   console.log("Updated friends list:", updatedFriends); // This will show correct data
+  //   //   return updatedFriends;
+  //   // });
+
+  //   console.log(friends);
+  //   // setNewFriendUsername("");
+
+  //   // setFriendUsername(newFriendUsername);
+  //   // setShowGroupLoader(false);
+  // };
+
   const addFriend = () => {
     if (!isConnected || !stompClientRef.current || connectionError) {
       addNotification(
@@ -1989,6 +2110,7 @@ const ChatApp = () => {
     setShowGroupLoader(true);
     if (!newFriendUsername.trim()) return;
 
+    // Validation 1: Length check
     if (newFriendUsername.length > 10) {
       Swal.fire({
         title: "Error!",
@@ -2000,10 +2122,26 @@ const ChatApp = () => {
       setNewFriendUsername("");
       return;
     }
+
+    // Validation 2: Only letters (no numbers or special characters)
+    const lettersOnlyRegex = /^[A-Za-z]+$/;
+    if (!lettersOnlyRegex.test(newFriendUsername)) {
+      Swal.fire({
+        title: "Error!",
+        text: "Username can only contain letters (A-Z, a-z). No numbers or special characters allowed.",
+        icon: "error",
+        confirmButtonText: "Cool",
+      });
+      setShowGroupLoader(false);
+      setNewFriendUsername("");
+      return;
+    }
+
+    // Validation 3: Cannot add yourself
     if (newFriendUsername.toLowerCase() === currentUser.toLowerCase()) {
       Swal.fire({
         title: "Error!",
-        text: "you can't add yourself.",
+        text: "You can't add yourself.",
         icon: "error",
         confirmButtonText: "Cool",
       });
@@ -2041,20 +2179,8 @@ const ChatApp = () => {
       body: JSON.stringify(newFriend),
     });
 
-    // setFriends((prev) => [...prev, newFriend]);
     console.log("Added friend:", newFriend);
-
-    // setFriends((prev) => {
-    //   const updatedFriends = [...prev, newFriend];
-    //   console.log("Updated friends list:", updatedFriends); // This will show correct data
-    //   return updatedFriends;
-    // });
-
     console.log(friends);
-    // setNewFriendUsername("");
-
-    // setFriendUsername(newFriendUsername);
-    // setShowGroupLoader(false);
   };
 
   const handleKeyPress = (e) => {
@@ -2076,7 +2202,20 @@ const ChatApp = () => {
       setCurrentUser("");
       return;
     }
-    console.log(showGroupLoader);
+
+    // Validation 2: Only letters (no numbers or special characters)
+    const lettersOnlyRegex = /^[A-Za-z]+$/;
+    if (!lettersOnlyRegex.test(currentUser)) {
+      Swal.fire({
+        title: "Error!",
+        text: "Username can only contain letters (A-Z, a-z). No numbers or special characters allowed.",
+        icon: "error",
+        confirmButtonText: "Cool",
+      });
+      setCurrentUser("");
+      return;
+    }
+
     if (currentUser.trim()) {
       setIsAuthenticated(true);
       connectWebSocket();
