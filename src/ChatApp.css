@@ -2834,3 +2834,61 @@ body.modal-open .overlay-loader {
   background-color: rgba(0, 123, 255, 0.1);
   transform: translateY(-1px);
 }
+
+/* count down styles */
+
+/* Countdown Styles */
+.expiry-countdown {
+    font-size: 12px;
+    font-weight: bold;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, #ffeaa7, #ffd32a);
+    color: #d35400;
+    animation: pulse 2s infinite;
+    font-family: 'Courier New', monospace;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+.header-expiry-countdown {
+    font-size: 14px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #ffcccc, #ff6b6b);
+    color: #c23616;
+    border-radius: 6px;
+    font-weight: bold;
+    animation: blink 1.5s infinite;
+}
+
+/* Urgent styling for last minute */
+.expiry-countdown.urgent,
+.header-expiry-countdown.urgent {
+    background: linear-gradient(135deg, #ff6b6b, #c23616);
+    color: white;
+    animation: blink 0.5s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .expiry-countdown {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+    
+    .header-expiry-countdown {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}

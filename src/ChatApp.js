@@ -10,7 +10,6 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import Swal from "sweetalert2";
-import axios from "axios";
 import { Dropdown, DropdownButton, ButtonGroup } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import BusyFingerAnimationLoader from "./BusyFingerAnimatedLoader";
@@ -26,6 +25,9 @@ import GroupMembersModal from "./GroupMembersModal";
 
 const ChatApp = () => {
   // State management
+  const [expiringChats, setExpiringChats] = useState({}); // Track expiring chats
+  const expiryTimersRef = useRef({}); // Store timer references
+  const [countdown, setCountdown] = useState(null);
   const [currentUser, setCurrentUser] = useState("");
   const [friendUsername, setFriendUsername] = useState("");
   const [message, setMessage] = useState("");
@@ -81,6 +83,16 @@ const ChatApp = () => {
     if (window.innerWidth <= 768) {
       setIsSidebarOpen(true);
     }
+  }, []);
+
+  // Cleanup timers on component unmount
+  useEffect(() => {
+    return () => {
+      // Clear all expiry timers
+      Object.values(expiryTimersRef.current).forEach((timer) => {
+        clearInterval(timer);
+      });
+    };
   }, []);
 
   useEffect(() => {
@@ -140,7 +152,7 @@ const ChatApp = () => {
 
   // Add notification function
   const addNotification = (message, type = "message") => {
-    const id = Date.now();
+    const id = generateUniqueId();
     const newNotification = {
       id,
       message,
@@ -163,6 +175,18 @@ const ChatApp = () => {
 
   const removeNotification = (id) => {
     setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const formatCountdown = (seconds) => {
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const generateUniqueId = () => {
+    return `${Date.now()}-${Math.random()
+      .toString(36)
+      .substr(2, 9)}-${performance.now().toString(36).substr(2, 9)}`;
   };
 
   const generateId = () => {
@@ -230,7 +254,7 @@ const ChatApp = () => {
 
     setIsCreatingGroup(true);
     setShowGroupLoader(true);
-    const groupId = generateId();
+    const groupId = generateUniqueId();
 
     const newGroup = {
       id: groupId,
@@ -352,7 +376,7 @@ const ChatApp = () => {
 
     // Show notification if not in this group chat
     if (
-      group_name == groupNameRef.current ||
+      group_name != groupNameRef.current ||
       groupNameRef.current.length == 1
     ) {
       console.log("currentGroupId", currentGroupId);
@@ -374,15 +398,13 @@ const ChatApp = () => {
       }
 
       // Update unread count
-      if (receivedMessage.group_name != groupNameRef.current) {
-        setGroups((prev) =>
-          prev.map((group) =>
-            group.name === group_name
-              ? { ...group, unread: group.unread + 1 }
-              : group
-          )
-        );
-      }
+      setGroups((prev) =>
+        prev.map((group) =>
+          group.name === group_name
+            ? { ...group, unread: group.unread + 1 }
+            : group
+        )
+      );
     }
   };
 
@@ -625,7 +647,7 @@ const ChatApp = () => {
       );
 
       setCurrentGroupMembers((prev) =>
-        prev.filter((member) => member !==  message[1])
+        prev.filter((member) => member !== message[1])
       );
 
       addNotification(`${message[1]} left the group "${lastWord}"`);
@@ -757,9 +779,6 @@ const ChatApp = () => {
   // };
 
   const handleCreateOrJoinGroup = (message) => {
-    console.log("Group Object received", message);
-    const response = JSON.parse(message.body);
-    console.log("Parsed response:", response);
     // Handle error cases
     if (!message.body) {
       setIsCreatingGroup(false);
@@ -770,6 +789,10 @@ const ChatApp = () => {
       );
       return;
     }
+
+    console.log("Group Object received", message);
+    const response = JSON.parse(message.body);
+    console.log("Parsed response:", response);
 
     if (message.body === "1") {
       setIsCreatingGroup(false);
@@ -1272,6 +1295,18 @@ const ChatApp = () => {
           }
         });
 
+        stompClient.subscribe(
+          `/topic/chat/expiry/${currentUser}`,
+          (message) => {
+            try {
+              const receivedMessage = JSON.parse(message.body);
+              handleExpiryOfChats(receivedMessage);
+            } catch (error) {
+              console.error("Error parsing message:", error);
+            }
+          }
+        );
+
         // Notify user of successful connection
         if (retryCount > 0) {
           addNotification("Connection restored!", "success");
@@ -1314,6 +1349,289 @@ const ChatApp = () => {
       setShowGroupLoader(false);
     }
   };
+
+  const handleExpiryOfChats = (message) => {
+    console.log("Chat expiry received:", message);
+    const { streamKey, ttlSeconds, minutesRemaining } = message;
+    addNotification(
+      `Chat will expire in ${minutesRemaining} minute(s)`,
+    );
+
+    console.log("DEBUG: Received streamKey:", streamKey);
+    console.log(
+      "DEBUG: Expected format for friend chat:",
+      `private-chat${currentUser}-friendname`
+    );
+    console.log("DEBUG: Current user:", currentUser);
+    // Start countdown for this chat
+    startCountdownWithCleanup(streamKey, ttlSeconds);
+  };
+
+  // Add this debug effect
+  useEffect(() => {
+    console.log("=== DEBUG EXPIRY CHATS ===");
+    console.log("Current expiringChats state:", expiringChats);
+    console.log("Number of expiring chats:", Object.keys(expiringChats).length);
+
+    // Check each streamKey format
+    Object.keys(expiringChats).forEach((key) => {
+      console.log(`StreamKey: "${key}"`, "Seconds:", expiringChats[key]);
+      console.log(`Is private chat? ${key.includes("private-chat")}`);
+      console.log(
+        `Contains currentUser "${currentUser}"? ${key.includes(currentUser)}`
+      );
+    });
+
+    // Check friends list
+    console.log(
+      "Friends list:",
+      friends.map((f) => f.username)
+    );
+  }, [expiringChats, friends]);
+
+  const startCountdownWithCleanup = (streamKey, initialSeconds) => {
+    let secondsRemaining = initialSeconds;
+
+    // Clear previous timer if exists
+    if (expiryTimersRef.current[streamKey]) {
+      clearInterval(expiryTimersRef.current[streamKey]);
+    }
+
+    // Update expiring chats state
+    setExpiringChats((prev) => ({
+      ...prev,
+      [streamKey]: secondsRemaining,
+    }));
+    console.log(expiringChats);
+    // Start new timer
+    expiryTimersRef.current[streamKey] = setInterval(() => {
+      secondsRemaining--;
+
+      if (secondsRemaining <= 0) {
+        // Chat expired - cleanup
+        clearInterval(expiryTimersRef.current[streamKey]);
+        delete expiryTimersRef.current[streamKey];
+
+        setExpiringChats((prev) => {
+          const updated = { ...prev };
+          delete updated[streamKey];
+          return updated;
+        });
+        console.log(expiringChats);
+        // Remove chat from UI
+        removeExpiredChat(streamKey);
+      } else {
+        // Update countdown in state
+        setExpiringChats((prev) => ({
+          ...prev,
+          [streamKey]: secondsRemaining,
+        }));
+        console.log(expiringChats);
+      }
+    }, 1000);
+
+    // Initial display
+    updateCountdownDisplay(streamKey, secondsRemaining);
+  };
+
+  // const removeExpiredChat = (streamKey) => {
+  //   console.log("Removing expired chat:", streamKey);
+
+  //   if (streamKey.startsWith("group:chat:")) {
+  //     // Group chat - remove from groups array
+  //     const groupName = streamKey.replace("group:chat:", "");
+  //     setGroups((prev) => prev.filter((group) => group.name !== groupName));
+  //     clearChat(groupName);
+
+  //     // If current chat is expired, clear it
+  //     if (
+  //       currentGroupId &&
+  //       groups.find((g) => g.id === currentGroupId)?.name === groupName
+  //     ) {
+  //       setIsGroupMode(false);
+  //       setCurrentGroupId("");
+  //     }
+  //   } else if (streamKey.includes("private-chat")) {
+  //     // Private chat - remove from friends array
+  //     const cleanKey = streamKey.replace("private-chat", "");
+  //     console.log("cleanKey:", cleanKey);
+  //     const [user1, user2] = cleanKey.split("-");
+  //     console.log("user1:", user1, "user2:", user2);
+  //     const friendName = currentUser.toLowerCase() === user1 ? user2 : user1;
+  //     console.log("Expired private chat with:", friendName);
+  //     // Remove from friends array
+  //     setFriends((prev) =>
+  //       prev.filter((friend) => friend.username.toLowerCase() !== friendName.toLowerCase())
+  //     );
+  //     console.log(friends);
+  //     friendExistsRef.current = false;
+  //     clearChat(friendName);
+
+  //     // If current chat is expired, clear it
+  //     if (friendUsername === friendName) {
+  //       setFriendUsername("");
+  //     }
+  //     clearChat(friendName);
+  //   }
+
+  //   showExpiredNotification(streamKey);
+  //   //  addNotification("Chat has expired and was removed", "info");
+  // };
+
+  const removeExpiredChat = (streamKey) => {
+    console.log("Removing expired chat:", streamKey);
+
+    if (streamKey.startsWith("group:chat:")) {
+      const groupName = streamKey.replace("group:chat:", "");
+
+      // Case-insensitive group name matching
+      setGroups((prev) => {
+        const updatedGroups = prev.filter((group) => {
+          // Compare ignoring case
+          const groupNameLower = groupName.toLowerCase();
+          const storedGroupNameLower = group.name.toLowerCase();
+          return storedGroupNameLower !== groupNameLower;
+        });
+        console.log("Groups after removal:", updatedGroups);
+        return updatedGroups;
+      });
+
+      // Clear chat history with case-insensitive matching
+      setChatHistory((prev) => {
+        const updated = { ...prev };
+        // Find the actual key (with correct case) that matches
+        const matchingKey = Object.keys(updated).find(
+          (key) => key.toLowerCase() === groupName.toLowerCase()
+        );
+        if (matchingKey) {
+          console.log("Deleting chat history for group:", matchingKey);
+          delete updated[matchingKey];
+        }
+        return updated;
+      });
+
+      // Reset current group if it's the expired one
+      if (currentGroupId) {
+        const currentGroup = groups.find((g) => g.id === currentGroupId);
+        if (
+          currentGroup &&
+          currentGroup.name.toLowerCase() === groupName.toLowerCase()
+        ) {
+          console.log("Current group expired, clearing it");
+        }
+      }
+      setIsGroupMode(false);
+      setCurrentGroupId("");
+    } else if (streamKey.includes("private-chat")) {
+      console.log("Processing private chat expiry:", streamKey);
+
+      // Extract usernames from streamKey
+      const cleanKey = streamKey.replace("private-chat", "");
+      const [user1, user2] = cleanKey.split("-");
+
+      console.log("Extracted users:", user1, user2);
+      console.log("Current user:", currentUser);
+
+      // Find the friend name (the one that's NOT current user)
+      let friendNameFromStream = "";
+      if (currentUser.toLowerCase() === user1.toLowerCase()) {
+        friendNameFromStream = user2; // This is the lowercase from backend
+      } else if (currentUser.toLowerCase() === user2.toLowerCase()) {
+        friendNameFromStream = user1; // This is the lowercase from backend
+      }
+
+      console.log("Friend name from stream (backend):", friendNameFromStream);
+      console.log(
+        "Current friends list:",
+        friends.map((f) => f.username)
+      );
+
+      if (friendNameFromStream) {
+        // Find the actual friend object with correct case
+        const friendToRemove = friends.find(
+          (friend) =>
+            friend.username.toLowerCase() === friendNameFromStream.toLowerCase()
+        );
+
+        const actualFriendName = friendToRemove
+          ? friendToRemove.username
+          : friendNameFromStream;
+        console.log("Actual friend name to remove:", actualFriendName);
+
+        // Remove from friends array (case-insensitive)
+        setFriends((prev) => {
+          const updated = prev.filter(
+            (friend) =>
+              friend.username.toLowerCase() !==
+              friendNameFromStream.toLowerCase()
+          );
+          console.log("Friends after removal:", updated);
+          return updated;
+        });
+
+        // Clear chat history (find with correct case)
+        setChatHistory((prev) => {
+          const updated = { ...prev };
+          // Find the key with correct case
+          const matchingKey = Object.keys(updated).find(
+            (key) => key.toLowerCase() === actualFriendName.toLowerCase()
+          );
+          if (matchingKey) {
+            console.log("Deleting chat history for friend:", matchingKey);
+            delete updated[matchingKey];
+          }
+          return updated;
+        });
+
+        // Reset current friend if it's the expired one
+        if (friendUsername.toLowerCase() === actualFriendName.toLowerCase()) {
+          console.log("Current friend expired, clearing it");
+          setFriendUsername("");
+        }
+      }
+    }
+
+    showExpiredNotification(streamKey);
+  };
+
+  const showExpiredNotification = (streamKey) => {
+    // Get chat name
+    let chatName = streamKey;
+    if (streamKey.startsWith("group:chat:")) {
+      chatName = streamKey.replace("group:chat:", "Group: ");
+    } else if (streamKey.includes("private-chat")) {
+      const cleanKey = streamKey.replace("private-chat", "");
+      const [user1, user2] = cleanKey.split("-");
+      chatName =
+        currentUser.toLowerCase() === user1.toLowerCase() ? `Chat with ${user2}` : `Chat with ${user1}`;
+    }
+
+    // Show toast notification
+    addNotification(`${chatName} has expired and was removed`);
+  };
+
+  const updateCountdownDisplay = (streamKey, secondsRemaining) => {
+    const minutes = Math.floor(secondsRemaining / 60);
+    const seconds = secondsRemaining % 60;
+    const displayText = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+    // Update in chat UI
+    const countdownElement = document.querySelector(
+      `[data-chat-key="${streamKey}"] .expiry-countdown`
+    );
+    if (countdownElement) {
+      countdownElement.textContent = `⏰ ${displayText}`;
+
+      // Style based on urgency
+      if (secondsRemaining < 60) {
+        countdownElement.style.color = "red";
+        countdownElement.classList.add("urgent");
+      } else if (secondsRemaining < 300) {
+        countdownElement.style.color = "orange";
+      }
+    }
+  };
+
   const handleConnectionError = (errorMessage) => {
     console.error("Connection error:", errorMessage);
     setConnectionError(true);
@@ -1715,17 +2033,18 @@ const ChatApp = () => {
     }
 
     // Check for duplicates (case insensitive)
-    // const friendExists = friends.some(
-    //   (friend) =>
-    //     friend.username.toLowerCase() === newFriendUsername.toLowerCase()
-    // );
+    const friendExists = friends.some(
+      (friend) =>
+        friend.username.toLowerCase() === newFriendUsername.toLowerCase()
+    );
 
-    // if (friendExists) {
-    //   console.log("friend exists");
-    //   addNotification("Friend already exists!");
-    //   setNewFriendUsername("");
-    //   return;
-    // }
+    if (friendExists) {
+      console.log("friend exists");
+      addNotification("Friend already exists!");
+      setNewFriendUsername("");
+      setShowGroupLoader(false);
+      return;
+    }
 
     const newFriend = {
       id: Date.now().toString(),
@@ -2142,145 +2461,187 @@ const ChatApp = () => {
         {showGroupChats ? (
           /* Groups List */
           <div className="chats-list">
-            {filteredGroups.map((group) => (
-              <div
-                key={group.id}
-                className={`chat-item ${
-                  currentGroupId === group.id ? "active" : ""
-                }`}
-                onClick={() => selectGroup(group.id, group.name)}
-              >
-                <div className="me-2">
-                  {/* <span>
-                    <i className="bi bi-people-fill"></i>
-                  </span> */}
-                  <span>
+            {filteredGroups.map((group) => {
+              const groupStreamKey = `group:chat:${group.name}`;
+              const remainingSeconds = expiringChats[groupStreamKey];
+
+              return (
+                <div
+                  key={group.id}
+                  className={`chat-item ${
+                    currentGroupId === group.id ? "active" : ""
+                  }`}
+                  onClick={() => selectGroup(group.id, group.name)}
+                  data-chat-key={groupStreamKey}
+                >
+                  <div className="me-2">
                     <GroupAvatar
-                      letter={group.name.charAt(0).toUpperCase()}
-                      name={group.name}
+                      letter={group.name.charAt(0).toUpperCase() || "r"}
+                      name={group.name || "r"}
                       size={62}
-                      backgroundColor={getRandomColor()} // Your existing function
-                      onClick={() => selectGroup(group.id, group.name)}
+                      backgroundColor={getRandomColor()}
+                      onClick={() =>
+                        selectGroup(group.id || "r", group.name || "r")
+                      }
                     />
-                  </span>
-                </div>
-                <div className="chat-info">
-                  <div className="d-flex justify-content-between">
-                    <h4>{group.name}</h4>
-                    {group.unread > 0 && (
-                      <span className="unread-badge">{group.unread}</span>
-                    )}
                   </div>
-                  <div className="chat-preview">
-                    <small className="text-muted">
-                      {group.groupMembers.length} groupMembers •{" "}
-                      {group.admin === currentUser
-                        ? "You are admin"
-                        : `Admin: ${group.admin}`}
-                    </small>
+                  <div className="chat-info">
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h4>{group.name}</h4>
+                      {/* {remainingSeconds !== undefined &&
+                        remainingSeconds > 0 && (
+                          <span className="expiry-countdown">
+                            ⏰ {formatCountdown(remainingSeconds)}
+                          </span>
+                        )} */}
+                      {(() => {
+                        let streamKey = "";
+                        if (isGroupMode && currentGroupId) {
+                          const groupName = groups.find(
+                            (g) => g.id === currentGroupId
+                          )?.name;
+                          streamKey = `group:chat:${groupName}`;
+                        }
+                        const remainingSeconds = expiringChats[groupStreamKey];
+
+                        if (
+                          remainingSeconds !== undefined &&
+                          remainingSeconds > 0
+                        ) {
+                          return (
+                            <span className="header-expiry-countdown ms-2">
+                              ⏰ {formatCountdown(remainingSeconds)}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+                    <div className="chat-preview">
+                      <small className="text-muted">
+                        {group.groupMembers?.length || 0} members •
+                        {group.admin === currentUser
+                          ? " You are admin"
+                          : ` Admin: ${group.admin}`}
+                      </small>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="chats-list">
-            {filteredFriends.map((friend) => (
-              <div
-                key={friend.id}
-                className={`chat-item ${
-                  friendUsername === friend.username ? "active" : ""
-                }`}
-                style={{
-                  backgroundColor:
-                    friendUsername === friend.username
-                      ? friendColors
-                      : "transparent",
-                  borderLeft: `4px solid ${friendColors}`,
-                  transition: "background-color 0.3s ease",
-                }}
-              >
-                {/* <div
-                  className="chat-avatar me-2 mb-3 md:mb-0 mt-1"
-                  onClick={() => {
-                    selectFriend(friend.username);
-                    // Close sidebar on mobile when friend is selected
-                    if (window.innerWidth <= 768) {
-                      setIsSidebarOpen(false);
-                    }
-                  }}
-                >
-                  <span>{friend.friendName.charAt(0).toUpperCase()}</span>
-                  {/* {friend.online && <div className="online-indicator"></div>} */}
-                {/* </div> */}
+            {filteredFriends.map((friend) => {
+              // const friendStreamKey = `private-chat${currentUser}-${friend.username}`;
+              // const remainingSeconds = expiringChats[friendStreamKey];
 
-                <div className="chat-avatar me-2">
-                  <GoldenFrameAvatar
-                    letter={friend.friendName.charAt(0).toUpperCase()}
-                    name={friend.friendName}
-                    size={62}
-                    backgroundColor={getRandomColor()} // Your existing function
-                    isOnline={friend.online}
-                    onClick={() => selectFriend(friend.username)}
-                  />
-                </div>
+              const friendStreamKey1 = `private-chat${currentUser}-${friend.username}`;
+              const friendStreamKey2 = `private-chat${currentUser.toLowerCase()}-${friend.username.toLowerCase()}`;
+              const friendStreamKey3 = `private-chat${currentUser}-${friend.username.toLowerCase()}`;
 
+              // Try to find any matching streamKey in expiringChats
+              const streamKeys = Object.keys(expiringChats);
+              const matchingKey = streamKeys.find(
+                (key) =>
+                  key.includes(currentUser.toLowerCase()) &&
+                  key.includes(friend.username.toLowerCase())
+              );
+
+              const remainingSeconds = matchingKey
+                ? expiringChats[matchingKey]
+                : undefined;
+
+              return (
                 <div
-                  className="chat-info ms-3"
-                  onClick={() => {
-                    selectFriend(friend.username);
-                    // Close sidebar on mobile when friend is selected
-                    if (window.innerWidth <= 768) {
-                      setIsSidebarOpen(false);
-                    }
+                  key={friend.id}
+                  className={`chat-item ${
+                    friendUsername === friend.username ? "active" : ""
+                  }`}
+                  style={{
+                    backgroundColor:
+                      friendUsername === friend.username
+                        ? friendColors
+                        : "transparent",
+                    borderLeft: `4px solid ${friendColors}`,
+                    transition: "background-color 0.3s ease",
                   }}
+                  data-chat-key={friendStreamKey1}
                 >
-                  <div className="d-flex justify-content-between text-start font-bold">
-                    <h4>{friend.friendName}</h4>
+                  <div className="chat-avatar me-2">
+                    <GoldenFrameAvatar
+                      letter={friend.friendName.charAt(0).toUpperCase()}
+                      name={friend.friendName}
+                      size={62}
+                      backgroundColor={getRandomColor()}
+                      isOnline={friend.online}
+                      onClick={() => selectFriend(friend.username)}
+                    />
                   </div>
-                  <div className="chat-preview">
-                    {/* <p>Last message preview...</p> */}
-                    {chatHistory[friend.username]?.length > 0 && (
-                      <i
-                        className={`m-1 ${
-                          chatHistory[friend.username]?.[
-                            chatHistory[friend.username]?.length - 1
-                          ]?.sender == currentUser
-                            ? "bi bi-chat-left-text-fill"
-                            : "bi bi-chat-right-text-fill"
-                        }`}
-                      ></i>
-                    )}
-                    <p className="m-1 fs-6 text-dark">
-                      {chatHistory[friend.username]?.[
-                        chatHistory[friend.username]?.length - 1
-                      ]?.content || "no messages"}
-                    </p>
-                    {friend.unread > 0 && (
-                      <span className="unread-badge mx-2">{friend.unread}</span>
-                    )}
-                  </div>
-                </div>
 
-                <div className="d-flex flex-column">
-                  <span className="time fs-6 text-dark">
-                    {formatTime(
-                      chatHistory[friend.username]?.[
-                        chatHistory[friend.username]?.length - 1
-                      ]?.timestamp
-                    ) || "hh:mm"}
-                  </span>
-
-                  <button
-                    className="btn btn-outline-danger action-btn"
-                    onClick={() => removeFriend(friend.username)}
-                    title="Remove Friend"
+                  <div
+                    className="chat-info ms-3"
+                    onClick={() => {
+                      selectFriend(friend.username);
+                      if (window.innerWidth <= 768) {
+                        setIsSidebarOpen(false);
+                      }
+                    }}
                   >
-                    <i className="bi bi-person-x-fill"></i>
-                  </button>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h4>{friend.friendName}</h4>
+                      {remainingSeconds !== undefined &&
+                        remainingSeconds > 0 && (
+                          <span className="expiry-countdown mx-1">
+                            ⏰ {formatCountdown(remainingSeconds)}
+                          </span>
+                        )}
+                    </div>
+                    <div className="chat-preview">
+                      {chatHistory[friend.username]?.length > 0 && (
+                        <i
+                          className={`m-1 ${
+                            chatHistory[friend.username]?.[
+                              chatHistory[friend.username]?.length - 1
+                            ]?.sender === currentUser
+                              ? "bi bi-chat-left-text-fill"
+                              : "bi bi-chat-right-text-fill"
+                          }`}
+                        ></i>
+                      )}
+                      <p className="m-1 fs-6 text-dark">
+                        {chatHistory[friend.username]?.[
+                          chatHistory[friend.username]?.length - 1
+                        ]?.content || "no messages"}
+                      </p>
+                      {friend.unread > 0 && (
+                        <span className="unread-badge mx-2">
+                          {friend.unread}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="d-flex flex-column">
+                    <span className="time fs-6 text-dark">
+                      {formatTime(
+                        chatHistory[friend.username]?.[
+                          chatHistory[friend.username]?.length - 1
+                        ]?.timestamp
+                      ) || "hh:mm"}
+                    </span>
+
+                    <button
+                      className="btn btn-outline-danger action-btn"
+                      onClick={() => removeFriend(friend.username)}
+                      title="Remove Friend"
+                    >
+                      <i className="bi bi-person-x-fill"></i>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -2290,82 +2651,297 @@ const ChatApp = () => {
         {/* Mobile Header */}
 
         {friendUsername || currentGroupId ? (
-          <>
-            <div
-              className="navbar navbar-light mobile-header d-lg-none"
-              style={{ backgroundColor: getRandomColor() }}
-            >
-              <div className="d-flex justify-content-between">
+          // <>
+          //   <div
+          //     className="navbar navbar-light mobile-header d-lg-none"
+          //     style={{ backgroundColor: getRandomColor() }}
+          //   >
+          //     <div className="d-flex justify-content-between">
+          //       <button
+          //         className="mobile-menu-btn text-bold m-1"
+          //         onClick={toggleSidebar}
+          //       >
+          //         <i className="bi bi-arrow-left text-dark"></i>{" "}
+          //         {/* Changed to hamburger icon */}
+          //       </button>
+
+          //       {/* icon part */}
+          //       {friendUsername ? (
+          //         <div className="mt-2">
+          //           {/* <span>{friendUsername.charAt(0).toUpperCase()}</span> */}
+          //           <span>
+          //             <GoldenFrameAvatar
+          //               letter={friendUsername.charAt(0).toUpperCase()}
+          //               name={friendUsername}
+          //               size={62}
+          //               backgroundColor={getRandomColor()} // Your existing function
+          //               isOnline={true}
+          //               onClick={() => selectFriend(friendUsername)}
+          //             />
+          //           </span>
+          //         </div>
+          //       ) : (
+          //         <div className="m-3">
+          //           {/* <span>
+          //             <i className="bi bi-people-fill"></i>
+          //           </span> */}
+          //           <span>
+          //             <GroupAvatar
+          //               letter={
+          //                 groups
+          //                   .find((g) => g.id === currentGroupId)
+          //                   ?.name.charAt(0)
+          //                   .toUpperCase() || "g"
+          //               }
+          //               name={
+          //                 groups.find((g) => g.id === currentGroupId)?.name ||
+          //                 "g"
+          //               }
+          //               size={62}
+          //               backgroundColor={getRandomColor()} // Your existing function
+          //               onClick={() => null}
+          //             />
+          //           </span>
+          //         </div>
+          //       )}
+
+          //       {/* name and details */}
+          //       <div className="partner-details m-3">
+          //         <h5 className="text-bold m-0 fs-4 text-dark">
+          //           {/* {friendUsername || "Select a chat"} */}
+          //           {isGroupMode
+          //             ? groups.find((g) => g.id === currentGroupId)?.name ||
+          //               "Group"
+          //             : friendUsername}
+          //         </h5>
+          //         {/* Add countdown next to chat name */}
+          //         {/* {(() => {
+          //           let streamKey = "";
+          //           if (isGroupMode && currentGroupId) {
+          //             const groupName = groups.find(
+          //               (g) => g.id === currentGroupId
+          //             )?.name;
+          //             streamKey = `group:chat:${groupName}`;
+          //           } else if (friendUsername) {
+          //             streamKey = `private-chat${currentUser.toLowerCase()}-${friendUsername.toLowerCase()}`;
+          //           }
+
+          //           const remainingSeconds = expiringChats[streamKey];
+
+          //           if (
+          //             remainingSeconds !== undefined &&
+          //             remainingSeconds > 0
+          //           ) {
+          //             return (
+          //               <span className="header-expiry-countdown ms-2">
+          //                 ⏰ {formatCountdown(remainingSeconds)}
+          //               </span>
+          //             );
+          //           }
+          //           return null;
+          //         })()} */}
+          //         <span className="status text-dark">
+          //           {/* {friendUsername ? "Online" : "Choose a friend to chat"} */}
+          //           {isGroupMode
+          //             ? `${
+          //                 groups.find((g) => g.id === currentGroupId)
+          //                   ?.groupMembers?.length || 0
+          //               } members`
+          //             : "Online"}
+          //         </span>
+          //       </div>
+          //       <div>
+          //         {(() => {
+          //           let streamKey = "";
+          //           if (isGroupMode && currentGroupId) {
+          //             const groupName = groups.find(
+          //               (g) => g.id === currentGroupId
+          //             )?.name;
+          //             streamKey = `group:chat:${groupName}`;
+          //           } else if (friendUsername) {
+          //             streamKey = `private-chat${currentUser.toLowerCase()}-${friendUsername.toLowerCase()}`;
+          //           }
+
+          //           const remainingSeconds = expiringChats[streamKey];
+
+          //           if (
+          //             remainingSeconds !== undefined &&
+          //             remainingSeconds > 0
+          //           ) {
+          //             return (
+          //               <span className="header-expiry-countdown ms-2">
+          //                 ⏰ {formatCountdown(remainingSeconds)}
+          //               </span>
+          //             );
+          //           }
+          //           return null;
+          //         })()}
+          //       </div>
+          //     </div>
+
+          //     <div className="dropdown">
+          //       <Dropdown>
+          //         <Dropdown.Toggle
+          //           style={{ color: getRandomColor() }}
+          //           variant="info"
+          //           id="dropdown-basic"
+          //         >
+          //           <i className="bi bi-three-dots"></i>
+          //         </Dropdown.Toggle>
+
+          //         <Dropdown.Menu align="end">
+          //           <Dropdown.Item
+          //             as="button"
+          //             className="text-danger"
+          //             onClick={() =>
+          //               friendUsername
+          //                 ? removeFriend(friendUsername)
+          //                 : leaveGroup(currentGroupId, currentUser)
+          //             }
+          //           >
+          //             {friendUsername ? (
+          //               <>
+          //                 <i className="bi bi-person-x-fill"></i> Remove Friend
+          //               </>
+          //             ) : (
+          //               <>
+          //                 <i className="bi bi-people-fill"></i> Leave Group
+          //               </>
+          //             )}
+          //           </Dropdown.Item>
+
+          //           {/* <Dropdown.Divider /> */}
+
+          //           {(friendUsername &&
+          //             chatHistory[friendUsername]?.length > 0) ||
+          //             (isGroupMode && chatHistory[groupName]?.length > 0 && (
+          //               <Dropdown.Item
+          //                 as="button"
+          //                 className="text-danger"
+          //                 onClick={() =>
+          //                   friendUsername
+          //                     ? clearChat(friendUsername)
+          //                     : clearChat(groupName)
+          //                 }
+          //               >
+          //                 <i className="bi bi-trash"></i> Clear Chat
+          //               </Dropdown.Item>
+          //             ))}
+          //         </Dropdown.Menu>
+          //       </Dropdown>
+          //     </div>
+          //   </div>
+          // </>
+          <div
+            className="navbar navbar-light mobile-header d-lg-none"
+            style={{ backgroundColor: getRandomColor() }}
+          >
+            <div className="d-flex justify-content-between align-items-center w-100">
+              {/* Left side: Menu button */}
+              <div className="d-flex align-items-center">
                 <button
                   className="mobile-menu-btn text-bold m-1"
                   onClick={toggleSidebar}
                 >
-                  <i className="bi bi-arrow-left text-dark"></i>{" "}
-                  {/* Changed to hamburger icon */}
+                  <i className="bi bi-arrow-left text-dark"></i>
                 </button>
+              </div>
 
-                {/* icon part */}
-                {friendUsername ? (
-                  <div className="mt-2">
-                    {/* <span>{friendUsername.charAt(0).toUpperCase()}</span> */}
-                    <span>
+              {/* Center: Avatar and details */}
+              <div className="d-flex flex-column align-items-center flex-grow-1 mx-2">
+                <div className="d-flex align-items-center justify-content-center">
+                  {/* Avatar */}
+                  {friendUsername ? (
+                    <div className="me-2">
                       <GoldenFrameAvatar
                         letter={friendUsername.charAt(0).toUpperCase()}
                         name={friendUsername}
-                        size={62}
-                        backgroundColor={getRandomColor()} // Your existing function
+                        size={42}
+                        backgroundColor={getRandomColor()}
                         isOnline={true}
                         onClick={() => selectFriend(friendUsername)}
                       />
-                    </span>
-                  </div>
-                ) : (
-                  <div className="m-3">
-                    {/* <span>
-                      <i className="bi bi-people-fill"></i>
-                    </span> */}
-                    <span>
+                    </div>
+                  ) : (
+                    <div className="me-2">
                       <GroupAvatar
-                        letter={groups
-                          .find((g) => g.id === currentGroupId)
-                          ?.name.charAt(0)
-                          .toUpperCase()}
-                        name={groups.find((g) => g.id === currentGroupId)?.name}
-                        size={62}
-                        backgroundColor={getRandomColor()} // Your existing function
+                        letter={
+                          groups
+                            .find((g) => g.id === currentGroupId)
+                            ?.name.charAt(0)
+                            .toUpperCase() || "G"
+                        }
+                        name={
+                          groups.find((g) => g.id === currentGroupId)?.name ||
+                          "Group"
+                        }
+                        size={42}
+                        backgroundColor={getRandomColor()}
                         onClick={() => null}
                       />
+                    </div>
+                  )}
+
+                  {/* Name, status and countdown in a column */}
+                  <div className="d-flex flex-column">
+                    <div className="d-flex align-items-center">
+                      <h5 className="text-bold m-0 fs-6 text-dark">
+                        {isGroupMode
+                          ? groups.find((g) => g.id === currentGroupId)?.name ||
+                            "Group"
+                          : friendUsername || "Select a chat"}
+                      </h5>
+
+                      {/* Countdown displayed inline with name */}
+                      {(() => {
+                        let streamKey = "";
+                        if (isGroupMode && currentGroupId) {
+                          const groupName = groups.find(
+                            (g) => g.id === currentGroupId
+                          )?.name;
+                          streamKey = `group:chat:${groupName}`;
+                        } else if (friendUsername) {
+                          streamKey = `private-chat${currentUser.toLowerCase()}-${friendUsername.toLowerCase()}`;
+                        }
+
+                        const remainingSeconds = expiringChats[streamKey];
+
+                        if (
+                          remainingSeconds !== undefined &&
+                          remainingSeconds > 0
+                        ) {
+                          return (
+                            <span className="header-expiry-countdown ms-2 text-nowrap">
+                              ⏰ {formatCountdown(remainingSeconds)}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
+
+                    <span className="status text-dark text-start">
+                      {isGroupMode
+                        ? `${
+                            groups.find((g) => g.id === currentGroupId)
+                              ?.groupMembers?.length || 0
+                          } members`
+                        : friendUsername
+                        ? "Online"
+                        : "Choose a friend to chat"}
                     </span>
                   </div>
-                )}
-
-                {/* name and details */}
-                <div className="partner-details m-3">
-                  <h5 className="text-bold m-0 fs-4 text-dark">
-                    {/* {friendUsername || "Select a chat"} */}
-                    {isGroupMode
-                      ? groups.find((g) => g.id === currentGroupId)?.name ||
-                        "Group"
-                      : friendUsername}
-                  </h5>
-                  <span className="status text-dark">
-                    {/* {friendUsername ? "Online" : "Choose a friend to chat"} */}
-                    {isGroupMode
-                      ? `${
-                          groups.find((g) => g.id === currentGroupId)
-                            ?.groupMembers?.length || 0
-                        } members`
-                      : "Online"}
-                  </span>
                 </div>
               </div>
 
-              <div className="dropdown">
+              {/* Right side: Dropdown - always in fixed position */}
+              <div className="dropdown" style={{ minWidth: "40px" }}>
                 <Dropdown>
                   <Dropdown.Toggle
                     style={{ color: getRandomColor() }}
                     variant="info"
                     id="dropdown-basic"
+                    className="p-1"
                   >
                     <i className="bi bi-three-dots"></i>
                   </Dropdown.Toggle>
@@ -2391,8 +2967,6 @@ const ChatApp = () => {
                       )}
                     </Dropdown.Item>
 
-                    {/* <Dropdown.Divider /> */}
-
                     {(friendUsername &&
                       chatHistory[friendUsername]?.length > 0) ||
                       (isGroupMode && chatHistory[groupName]?.length > 0 && (
@@ -2412,7 +2986,7 @@ const ChatApp = () => {
                 </Dropdown>
               </div>
             </div>
-          </>
+          </div>
         ) : (
           <>
             {/* <div className="welcome-screen">
@@ -2449,11 +3023,16 @@ const ChatApp = () => {
                   {isGroupMode ? (
                     <span>
                       <GroupAvatar
-                        letter={groups
-                          .find((g) => g.id === currentGroupId)
-                          ?.name.charAt(0)
-                          .toUpperCase()}
-                        name={groups.find((g) => g.id === currentGroupId)?.name}
+                        letter={
+                          groups
+                            .find((g) => g.id === currentGroupId)
+                            ?.name.charAt(0)
+                            .toUpperCase() || "r"
+                        }
+                        name={
+                          groups.find((g) => g.id === currentGroupId)?.name ||
+                          "r"
+                        }
                         size={62}
                         backgroundColor={getRandomColor()} // Your existing function
                         onClick={() => null}
@@ -2481,14 +3060,7 @@ const ChatApp = () => {
                         "Group"
                       : friendUsername}
                   </h3>
-                  {/* <span className="status text-dark fs-6">
-                    {isGroupMode
-                      ? `${
-                          groups.find((g) => g.id === currentGroupId)
-                            ?.groupMembers?.length || 0
-                        } members`
-                      : "Online"}
-                  </span> */}
+                  {/* Add countdown next to chat name */}
                   <span
                     className="status text-dark fs-6 clickable-members"
                     onClick={isGroupMode ? showGroupMembers : undefined}
@@ -2549,6 +3121,33 @@ const ChatApp = () => {
                 >
                   <i className="bi bi-person-x-fill"></i>
                 </button>
+                <div className="mt-1">
+                  {(() => {
+                    let streamKey = "";
+                    if (isGroupMode && currentGroupId) {
+                      const groupName = groups.find(
+                        (g) => g.id === currentGroupId
+                      )?.name;
+                      streamKey = `group:chat:${groupName}`;
+                    } else if (friendUsername) {
+                      streamKey = `private-chat${currentUser.toLowerCase()}-${friendUsername.toLowerCase()}`;
+                    }
+
+                    const remainingSeconds = expiringChats[streamKey];
+
+                    if (
+                      remainingSeconds !== undefined &&
+                      remainingSeconds > 0
+                    ) {
+                      return (
+                        <span className="header-expiry-countdown ms-2">
+                          ⏰ {formatCountdown(remainingSeconds)}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
               </div>
             </div>
 
