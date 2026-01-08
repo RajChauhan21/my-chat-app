@@ -1268,12 +1268,12 @@ const ChatApp = () => {
       }
     }
 
-    // const socket = new SockJS(
-    //   "https://my-chat-app-server-ng0o.onrender.com/webSocket"
-    // );
-      const socket = new SockJS(
-      "http://localhost:8080/webSocket"
+    const socket = new SockJS(
+      "https://my-chat-app-server-ng0o.onrender.com/webSocket"
     );
+    //   const socket = new SockJS(
+    //   "http://localhost:8080/webSocket"
+    // );
 
     const stompClient = new Client({
       webSocketFactory: () => socket,
