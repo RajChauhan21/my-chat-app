@@ -260,8 +260,8 @@ const ConnectionErrorModal = ({
               connection
             </li>
             <li>
-              <i className="bi bi-server me-2"></i>Verify server is running on
-              http://localhost:8080
+              <i className="bi bi-server me-2"></i>Verify server is up and running, as the deployed app is running on free instance it
+              may spin down which can delay requests to 1 mins.
             </li>
             <li>
               <i className="bi bi-arrow-clockwise me-2"></i>Try refreshing the

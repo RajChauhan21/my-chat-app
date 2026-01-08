@@ -1268,8 +1268,11 @@ const ChatApp = () => {
       }
     }
 
-    const socket = new SockJS(
-      "https://my-chat-app-server-ng0o.onrender.com/webSocket"
+    // const socket = new SockJS(
+    //   "https://my-chat-app-server-ng0o.onrender.com/webSocket"
+    // );
+      const socket = new SockJS(
+      "http://localhost:8080/webSocket"
     );
 
     const stompClient = new Client({
@@ -1752,7 +1755,7 @@ const ChatApp = () => {
       id: Date.now() + Math.random(),
       sender: messageSender,
       content: receivedMessage.content,
-      timestamp: receivedMessage.timestamp || new Date().toISOString(),
+      timestamp:new Date().toISOString(),
       type: "received",
     };
 
@@ -2019,85 +2022,6 @@ const ChatApp = () => {
       setIsSidebarOpen(false);
     }
   };
-
-  // const addFriend = () => {
-  //   if (!isConnected || !stompClientRef.current || connectionError) {
-  //     addNotification(
-  //       "Can't perform action - No connection to server",
-  //       "error"
-  //     );
-  //     return;
-  //   }
-  //   setShowGroupLoader(true);
-  //   if (!newFriendUsername.trim()) return;
-
-  //   if (newFriendUsername.length > 10) {
-  //     Swal.fire({
-  //       title: "Error!",
-  //       text: "Username too long. Max 10 characters.",
-  //       icon: "error",
-  //       confirmButtonText: "Cool",
-  //     });
-  //     setShowGroupLoader(false);
-  //     setNewFriendUsername("");
-  //     return;
-  //   }
-  //   if (newFriendUsername.toLowerCase() === currentUser.toLowerCase()) {
-  //     Swal.fire({
-  //       title: "Error!",
-  //       text: "you can't add yourself.",
-  //       icon: "error",
-  //       confirmButtonText: "Cool",
-  //     });
-  //     setShowGroupLoader(false);
-  //     setNewFriendUsername("");
-  //     return;
-  //   }
-
-  //   // Check for duplicates (case insensitive)
-  //   const friendExists = friends.some(
-  //     (friend) =>
-  //       friend.username.toLowerCase() === newFriendUsername.toLowerCase()
-  //   );
-
-  //   if (friendExists) {
-  //     console.log("friend exists");
-  //     addNotification("Friend already exists!");
-  //     setNewFriendUsername("");
-  //     setShowGroupLoader(false);
-  //     return;
-  //   }
-
-  //   const newFriend = {
-  //     id: Date.now().toString(),
-  //     username: newFriendUsername,
-  //     friendName: newFriendUsername,
-  //     selfName: currentUser,
-  //     online: true,
-  //     type: "add",
-  //     unread: 0,
-  //   };
-
-  //   stompClientRef.current.publish({
-  //     destination: "/app/friend/add",
-  //     body: JSON.stringify(newFriend),
-  //   });
-
-  //   // setFriends((prev) => [...prev, newFriend]);
-  //   console.log("Added friend:", newFriend);
-
-  //   // setFriends((prev) => {
-  //   //   const updatedFriends = [...prev, newFriend];
-  //   //   console.log("Updated friends list:", updatedFriends); // This will show correct data
-  //   //   return updatedFriends;
-  //   // });
-
-  //   console.log(friends);
-  //   // setNewFriendUsername("");
-
-  //   // setFriendUsername(newFriendUsername);
-  //   // setShowGroupLoader(false);
-  // };
 
   const addFriend = () => {
     if (!isConnected || !stompClientRef.current || connectionError) {
